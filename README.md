@@ -1,0 +1,1 @@
+# github-outputs-artifacts
