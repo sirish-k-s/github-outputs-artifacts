@@ -1,0 +1,70 @@
+name: Deploy the website
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get code
+        uses: actions/checkout@v3 # predefined github action, this is to get code from the repo, can find may other actions in the github marketplace https://github.com/marketplace?type=actions
+
+      - name: Cache dependencies #cache the dependencies to speed up the workflow
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: deps-node-modules-${{ hashFiles('**/package-lock.json') }} # key has to be a dynamic value ffor better uses case and cache invalidations 
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Lint code
+        run: npm run lint
+      - name: Test code
+        run: npm run test
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    outputs:
+      script-file: ${{ steps.publish.outputs.js-file }} #defing and using the output
+    steps:
+      - name: Get code
+        uses: actions/checkout@v3
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: deps-node-modules-${{ hashFiles('**/package-lock.json') }}
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build website
+        run: npm run build
+      - name: Publish JS filename
+        id: publish
+        run: find dist/assets/*.js -type f -execdir echo 'js-file={}' >> $GITHUB_OUTPUT ';'
+
+      - name: Upload artifacts # Uploading the build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-files
+          path: dist # Uploading the dist folder as an artifact
+          # path: |
+          #   dist
+          #   package.json # can store multiple files like this
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get build artifacts # download the artifacts from the build job (automatically by actions)
+        uses: actions/download-artifact@v4
+        with:
+          name: dist-files
+      - name: Output contents
+        run: ls
+      - name: Output filename
+        run: echo "${{ needs.build.outputs.script-file }}" #using the output from the build job
+      - name: Deploy
+        run: echo "Deploying..." #since sever is not available, just echoing the deploying to simulate the deployment
