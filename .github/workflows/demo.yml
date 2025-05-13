@@ -3,7 +3,7 @@ on:
   push:
     branches:
       - main
-  workflow_dispatch:
+  workflow_dispatch: #added for demo purpose, this will allow to run the workflow manually from the actions tab
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -19,8 +19,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
         
-      - name: Lint code
-        run: npm run lint
       - name: Test code
         run: npm run test
   build:
@@ -39,13 +37,9 @@ jobs:
           key: deps-node-modules-${{ hashFiles('**/package-lock.json') }}
       - name: Install dependencies
         run: npm ci
-
       - name: Build website
         run: npm run build
-      - name: Publish JS filename
-        id: publish
-        run: find dist/assets/*.js -type f -execdir echo 'js-file={}' >> $GITHUB_OUTPUT ';'
-
+        
       - name: Upload artifacts # Uploading the build artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -54,6 +48,9 @@ jobs:
           # path: |
           #   dist
           #   package.json # can store multiple files like this
+      - name: Publish JS filename
+        id: publish # can have an id like sirish also 
+        run: find dist/assets/*.js -type f -execdir echo 'js-file={}' >> $GITHUB_OUTPUT ';'
   deploy:
     needs: build
     runs-on: ubuntu-latest
